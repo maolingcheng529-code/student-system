@@ -1,0 +1,17 @@
+.git
+node_modules
+private
+backups
+work
+outputs
+dist
+.next
+.wrangler
+.sites-runtime
+**/.env
+**/.env.*
+**/*.sqlite
+**/*.sqlite3
+**/*.sqlite-wal
+**/*.sqlite-shm
+**/*.pem

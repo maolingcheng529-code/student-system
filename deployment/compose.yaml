@@ -1,0 +1,49 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    restart: unless-stopped
+    init: true
+    env_file:
+      - ../private/secrets.env
+    environment:
+      PUBLIC_ORIGIN: https://${STUDY_DOMAIN:?Set STUDY_DOMAIN in deployment/.env}
+      TRUST_PROXY_SECRET: ${TRUST_PROXY_SECRET:?Set TRUST_PROXY_SECRET in deployment/.env}
+    volumes:
+      - ../private/data:/data
+      - ../private/roster.json:/app/lib/roster.json:ro
+      - ../private/textbook-assets:/app/public/textbook-assets:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - study
+  web:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      STUDY_DOMAIN: ${STUDY_DOMAIN:?Set STUDY_DOMAIN in deployment/.env}
+      TRUST_PROXY_SECRET: ${TRUST_PROXY_SECRET:?Set TRUST_PROXY_SECRET in deployment/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - study
+networks:
+  study:
+volumes:
+  caddy_data:
+  caddy_config:
