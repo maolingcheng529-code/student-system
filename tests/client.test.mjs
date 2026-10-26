@@ -4,7 +4,8 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 test('login gate, mobile pages, admin-only controls and resume history',async()=>{
   const elements=new Map(),events={};const el=s=>{if(!elements.has(s))elements.set(s,{innerHTML:'',textContent:'',classList:{add(){},remove(){}},addEventListener(){},showModal(){this.open=true},close(){this.open=false},focus(){},elements:{id:{value:''}}});return elements.get(s)};
-  const context=vm.createContext({document:{querySelector:el,querySelectorAll:()=>[]},localStorage:{getItem:()=>null},location:{hash:''},window:{history:{replaceState(){}},scrollY:0,scrollTo(){},addEventListener(k,fn){events[k]=fn}},fetch:async()=>({ok:false,status:401,json:async()=>({error:'请先登录'})}),FormData,TextDecoder,setTimeout:()=>1,clearTimeout(){},console});
+  const context=vm.createContext({document:{querySelector:el,querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:()=>null},location:{hash:''},window:{history:{replaceState(){}},scrollY:0,scrollTo(){},addEventListener(k,fn){events[k]=fn}},fetch:async()=>({ok:false,status:401,json:async()=>({error:'请先登录'})}),FormData,TextDecoder,setTimeout:()=>1,clearTimeout(){},console});
+  vm.runInContext(readFileSync('public/ai-answer.js','utf8'),context);
   vm.runInContext(readFileSync('public/app.js','utf8'),context);await new Promise(r=>setImmediate(r));
   assert(el('#app').innerHTML.includes('登录你的学习空间'));assert(!el('#app').innerHTML.includes('沿着章节'));
   context.cardData=JSON.parse(readFileSync('lib/knowledge-cards.json','utf8'));vm.runInContext('cards=cardData',context);
@@ -17,12 +18,17 @@ test('login gate, mobile pages, admin-only controls and resume history',async()=
   context.imported=JSON.parse(readFileSync('lib/course.json','utf8'));
   vm.runInContext("course=imported;courseEnabled=true;coursePage=null;tab='home';restoring=true;render()",context);assert(el('#app').innerHTML.includes('开始阅读课件'));assert(el('#app').innerHTML.includes('20'));
   vm.runInContext("tab='course';render()",context);assert(el('#app').innerHTML.includes('大模型时代'));
+  vm.runInContext('startCourseReading()',context);assert.equal(vm.runInContext('coursePage',context),context.imported.pages[0].id);assert(el('#app').innerHTML.includes('course-body'));
   vm.runInContext("openCourse(course.pages[30].id)",context);assert(el('#app').innerHTML.includes('下一页'));assert(el('#app').innerHTML.includes('原课件本页'));
   assert(vm.runInContext("findCoursePages('Transformer').length",context)>0);
   assert.equal(vm.runInContext("query='神经网络';highlightText('深度神 经 网 络学习')",context),'深度<mark class="search-hit">神 经 网 络</mark>学习');
   assert.equal(vm.runInContext("query='A*';highlightText('<b>A*</b>')",context),'&lt;b&gt;<mark class="search-hit">A*</mark>&lt;/b&gt;');
   vm.runInContext("tab='library';query='Transformer';render()",context);assert(el('#app').innerHTML.includes('阅读本页'));
   context.bookData=JSON.parse(readFileSync('lib/textbook.json','utf8'));context.graphData=JSON.parse(readFileSync('lib/textbook-map.json','utf8'));
+  vm.runInContext("textbook=bookData;textbookEnabled=true;bookPage=bookData.pages.find(p=>p.pageNumber===38&&!p.alternate).id;query='神经网络'",context);
+  assert(vm.runInContext("textbookReader().includes('textbook-image-wrap')",context));
+  assert.equal(vm.runInContext("textbookReader().includes('search-hit')",context),false);
+  assert.equal(vm.runInContext("bookImageHighlights(bookData.pages[0])",context),'');
   vm.runInContext("textbook={...bookData,knowledgeGraph:graphData};textbookEnabled=true;tab='map';mapNode='features';render()",context);assert(el('#app').innerHTML.includes('教材第 38 页'));assert(!el('#app').innerHTML.includes('尚待开发'));
   assert.equal(vm.runInContext('makeReviewQuestions().length',context),0);
   vm.runInContext("studied={textbook:[textbook.pages.find(p=>p.pageNumber===38&&!p.alternate).id],course:[]};tab='review';render()",context);

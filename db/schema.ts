@@ -22,3 +22,9 @@ export const courseSources=sqliteTable('course_sources',{
   id:text('id').primaryKey(), title:text('title').notNull(), sourceUrl:text('source_url').notNull(),
   payload:text('payload').notNull(), enabled:integer('enabled').notNull().default(1), importedAt:text('imported_at').notNull(),
 });
+export const aiSettings=sqliteTable('ai_settings',{
+  id:text('id').primaryKey(),encryptedKey:text('encrypted_key').notNull(),model:text('model').notNull(),updatedAt:integer('updated_at').notNull(),
+});
+export const aiUsage=sqliteTable('ai_usage',{
+  key:text('key').primaryKey(),count:integer('count').notNull(),resetAt:integer('reset_at').notNull(),
+});

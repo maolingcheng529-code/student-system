@@ -34,7 +34,7 @@ export async function startServer(options={}){
   if(environment.TRUST_PROXY_SECRET&&environment.TRUST_PROXY_SECRET.length<32)throw Error('TRUST_PROXY_SECRET must contain at least 32 characters');
   const dataDirectory=path.resolve(options.dataDirectory||environment.DATA_DIRECTORY||path.join(projectDirectory,'private/data'));
   const publicDirectory=await realpath(path.join(projectDirectory,'public')),shell=await readFile(path.join(projectDirectory,'deployment/index.html'));
-  const database=await openDatabase(dataDirectory,projectDirectory),runtime={DB:database.DB,BUCKET:diskBucket(dataDirectory),AUTH_PEPPER:environment.AUTH_PEPPER,ADMIN_PASSWORD_HASH:environment.ADMIN_PASSWORD_HASH,TEXTBOOK_IMAGE_KEY:environment.TEXTBOOK_IMAGE_KEY};
+  const database=await openDatabase(dataDirectory,projectDirectory),runtime={DB:database.DB,BUCKET:diskBucket(dataDirectory),AUTH_PEPPER:environment.AUTH_PEPPER,ADMIN_PASSWORD_HASH:environment.ADMIN_PASSWORD_HASH,TEXTBOOK_IMAGE_KEY:environment.TEXTBOOK_IMAGE_KEY,DEEPSEEK_API_KEY:environment.DEEPSEEK_API_KEY,DEEPSEEK_MODEL:environment.DEEPSEEK_MODEL};
   const server=createServer(async(req,res)=>{
     res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','same-origin');res.setHeader('X-Frame-Options','DENY');
     try{
