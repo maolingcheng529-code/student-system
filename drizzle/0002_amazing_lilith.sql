@@ -1,0 +1,1 @@
+ALTER TABLE `documents` ADD `pages` text DEFAULT '[]' NOT NULL;

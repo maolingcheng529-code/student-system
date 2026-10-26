@@ -1,0 +1,6 @@
+'use client';
+import { useEffect } from 'react';
+export default function Home() {
+  useEffect(() => {const s=document.createElement('script');s.src='/app.js';s.async=true;document.body.appendChild(s);return()=>{s.remove()}},[]);
+  return <><aside className="sidebar"><a className="brand" href="#home"><span className="brand-icon">序</span>知序<span className="brand-en">STUDY SPACE</span></a><p className="side-caption">让知识，井然有序。</p><nav aria-label="主导航" id="desktop-nav"/><div className="side-bottom"><span className="status-dot"/> 课程学习空间<br/><small id="storage-caption">登录后同步你的学习记录</small></div></aside><div className="shell"><header><a href="#home" className="mobile-brand">知序 <span>学习空间</span></a><div className="breadcrumb">我的课程 <span>/</span> 人工智能概论</div><button className="avatar" id="account-button" aria-label="查看账号" onClick={()=>{location.hash='account'}}>学</button></header><main id="app"><div className="panel">正在连接学习空间…</div></main><footer>知序 · 每一个知识点，都有它的位置。<span>人工智能概论 / 示例课程</span></footer></div><nav className="bottom-nav" aria-label="手机导航" id="mobile-nav"/><dialog id="detail"><div id="detail-content"/></dialog><div id="toast" role="status"/></>;
+}

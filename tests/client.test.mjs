@@ -1,0 +1,34 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+test('login gate, mobile pages, admin-only controls and resume history',async()=>{
+  const elements=new Map(),events={};const el=s=>{if(!elements.has(s))elements.set(s,{innerHTML:'',textContent:'',classList:{add(){},remove(){}},addEventListener(){},showModal(){this.open=true},close(){this.open=false},focus(){},elements:{id:{value:''}}});return elements.get(s)};
+  const context=vm.createContext({document:{querySelector:el,querySelectorAll:()=>[]},localStorage:{getItem:()=>null},location:{hash:''},window:{history:{replaceState(){}},scrollY:0,scrollTo(){},addEventListener(k,fn){events[k]=fn}},fetch:async()=>({ok:false,status:401,json:async()=>({error:'请先登录'})}),FormData,TextDecoder,setTimeout:()=>1,clearTimeout(){},console});
+  vm.runInContext(readFileSync('public/app.js','utf8'),context);await new Promise(r=>setImmediate(r));
+  assert(el('#app').innerHTML.includes('登录你的学习空间'));assert(!el('#app').innerHTML.includes('沿着章节'));
+  context.cardData=JSON.parse(readFileSync('lib/knowledge-cards.json','utf8'));vm.runInContext('cards=cardData',context);
+  vm.runInContext("user={id:'9999990001',name:'测试学生',role:'student',className:'测试班'};ready=true;restoring=true;tab='materials';render()",context);
+  assert(!el('#app').innerHTML.includes('type="file"'));assert(el('#app').innerHTML.includes('不能导入或删除'));
+  for(const route of ['home','library','map','ask','review','account']){vm.runInContext(`tab='${route}';render()`,context);assert(el('#app').innerHTML.length>200,route);assert(!el('#app').innerHTML.includes('undefined'),route)}
+  vm.runInContext("user={id:'administrator01',name:'课程管理员',role:'admin'};tab='materials';render()",context);assert(el('#app').innerHTML.includes('type="file"'));
+  vm.runInContext("tab='students';studentsList=[{id:'9999990001',name:'测试学生',className:'测试班',activated:false}];render()",context);assert(el('#app').innerHTML.includes('待首次登录'));
+  vm.runInContext("history=[{route:'library',query:'过拟合',chapterFilter:3,scroll:100,cardId:8,at:Date.now()}];resumeHistory(0)",context);assert(el('#detail-content').innerHTML.includes('过拟合'));assert.equal(vm.runInContext('activeCard',context),8);
+  context.imported=JSON.parse(readFileSync('lib/course.json','utf8'));
+  vm.runInContext("course=imported;courseEnabled=true;coursePage=null;tab='home';restoring=true;render()",context);assert(el('#app').innerHTML.includes('开始阅读课件'));assert(el('#app').innerHTML.includes('20'));
+  vm.runInContext("tab='course';render()",context);assert(el('#app').innerHTML.includes('大模型时代'));
+  vm.runInContext("openCourse(course.pages[30].id)",context);assert(el('#app').innerHTML.includes('下一页'));assert(el('#app').innerHTML.includes('原课件本页'));
+  assert(vm.runInContext("findCoursePages('Transformer').length",context)>0);
+  assert.equal(vm.runInContext("query='神经网络';highlightText('深度神 经 网 络学习')",context),'深度<mark class="search-hit">神 经 网 络</mark>学习');
+  assert.equal(vm.runInContext("query='A*';highlightText('<b>A*</b>')",context),'&lt;b&gt;<mark class="search-hit">A*</mark>&lt;/b&gt;');
+  vm.runInContext("tab='library';query='Transformer';render()",context);assert(el('#app').innerHTML.includes('阅读本页'));
+  context.bookData=JSON.parse(readFileSync('lib/textbook.json','utf8'));context.graphData=JSON.parse(readFileSync('lib/textbook-map.json','utf8'));
+  vm.runInContext("textbook={...bookData,knowledgeGraph:graphData};textbookEnabled=true;tab='map';mapNode='features';render()",context);assert(el('#app').innerHTML.includes('教材第 38 页'));assert(!el('#app').innerHTML.includes('尚待开发'));
+  assert.equal(vm.runInContext('makeReviewQuestions().length',context),0);
+  vm.runInContext("studied={textbook:[textbook.pages.find(p=>p.pageNumber===38&&!p.alternate).id],course:[]};tab='review';render()",context);
+  assert(el('#app').innerHTML.includes('开始复习'));assert(vm.runInContext('makeReviewQuestions().length',context)>0);
+  assert(vm.runInContext('makeReviewQuestions().every(q=>q.pageId===studied.textbook[0])',context));
+  vm.runInContext('nextReview();revealReview()',context);assert(el('#app').innerHTML.includes('参考答案'));assert(el('#app').innerHTML.includes('教材 · 第 38 页'));
+  vm.runInContext("annotations=[{kind:'textbook',pageId:studied.textbook[0],important:true,difficult:true,note:'<script>重点问题</script>',excerpt:'高级特征',updatedAt:Date.now()}];tab='library';openAnnotations()",context);assert(el('#app').innerHTML.includes('重点问题'));assert(!el('#app').innerHTML.includes('<script>重点问题'));assert(el('#app').innerHTML.includes('返回原页'));
+  vm.runInContext('clearUser()',context);assert.equal(vm.runInContext('annotations.length+studied.textbook.length+studied.course.length',context),0);
+});
